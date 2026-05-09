@@ -1,0 +1,1212 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <title>exmentals</title>
+
+    <!--
+╔══════════════════════════════════════════════════════╗
+║ GOOGLE FONTS                                         ║
+║ Black Han Sans : 이미지의 두껍고 납작한 한글 서체    ║
+║ 입체적인 emboss 느낌을 만들기 위한 핵심 폰트         ║
+╚══════════════════════════════════════════════════════╝
+-->
+    <!-- <link
+      href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@300;400&display=swap"
+      rel="stylesheet"
+    /> -->
+
+    <style>
+      /* ══════════════════════════════════════════════════════
+      [1] RESET + ROOT VARIABLES
+      모든 브라우저 기본값 제거, 전역 디자인 토큰 정의
+      ══════════════════════════════════════════════════════ */
+      *,
+      *::before,
+      *::after {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      @font-face {
+        font-family: "NanumBarunGothic-YetHangul";
+        src: url(NanumBarunGothic-YetHangul.ttf) format("truetype");
+      }
+
+      :root {
+        /* 1.png 기반 라이트 팔레트 */
+        --bg: white; /* 전체 배경 — 따뜻한 오프화이트 */
+        --text-intro: rgba(180, 175, 168, 0.88); /* 시작 문장 — 연한 회색 */
+        /* --shadow-hi: rgba(255, 255, 255, 0.95); emboss 하이라이트 */
+        --shadow-lo: rgba(135, 130, 123, 0.55); /* emboss 그림자 */
+        --font-h: "JTTNeulpumOTF";
+        --font-b: "JTTNeulpumOTF";
+      }
+
+      html,
+      body {
+        /* width: 1920px;
+           height: 1080px; */
+        /* display: flex;
+           position: fixed;
+           overflow-x: hidden;
+           overflow-y: scroll;
+           background: radial-gradient(
+             ellipse at center,
+             rgba(222, 219, 212, 0.85) 0%,
+             /* 중심  rgba(205, 202, 195, 0.266) 38%,
+             중간  transparent 70% 가장자리
+           ); */
+        /* align-content: center;
+           align-items: center; */
+        /* width: 500px; /* 화면보다 넓게 */
+        /* height: 1000px; */
+        width: 100vw;
+        height: 1920px;
+        /* transform: rotate(90deg); */
+        background: radial-gradient(70% 70% at 50% 50%, #d0d0d0 0%, #fff 70%);
+        background-position: center; /* centers the image */
+        background-repeat: no-repeat; /* prevents the image from tiling */
+        background-attachment: fixed;
+        font-family: var(--font-b);
+        cursor:
+          url("cursor.svg") 10 10,
+          pointer;
+        user-select: none;
+      }
+
+      textarea {
+        user-select: text;
+        -webkit-user-select: text;
+      }
+
+      /* ══════════════════════════════════════════════════════
+      [2] BACKGROUND GLOW LAYERS
+      1.png 하단 중앙의 크고 부드러운 원형 광원 효과.
+      두 겹(::before 넓은 외곽, ::after 밝은 핵)으로 구성.
+      ══════════════════════════════════════════════════════ */
+      
+
+      /* ══════════════════════════════════════════════════════
+      [3] APP WRAPPER
+      1920×1080 단일 컬럼 레이아웃.
+      - 상단 780px: 스크롤 가능한 텍스트 영역
+      - 하단 300px: fixed 원형 입력 영역
+      ══════════════════════════════════════════════════════ */
+      #app {
+        position: relative;
+        width: 100%;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        z-index: 1;
+      }
+
+      /* ══════════════════════════════════════════════════════
+      [4] SCROLL AREA — 텍스트 누적 공간
+      justify-content: flex-end → 내용이 아래에서 시작.
+      새 응답이 추가될수록 이전 내용은 위로 밀려 올라감.
+      이것이 "챗봇처럼 밀어 올리는" 구조의 핵심.
+      ══════════════════════════════════════════════════════ */
+      #scroll-area {
+        width: 100%;
+        height: 100vh; /* 화면 전체 높이 사용 */
+        overflow-y: auto;
+        overflow-x: hidden;
+        display: flex;
+        flex-direction: column;
+        padding: 50vh 0 50vh 0;
+        align-items: center;
+        gap: 56px;
+
+        scroll-behavior: smooth;
+      }
+      #scroll-area::-webkit-scrollbar {
+        width: 0;
+      }
+
+      /* ══════════════════════════════════════════════════════
+      [5] INTRO TEXT — 시작 문장 (1.png 재현)
+      핵심 시각: text-shadow 두 겹 = emboss 효과
+      - 위/왼쪽 밝은 그림자 → 하이라이트(볼록)
+      - 아래/오른쪽 어두운 그림자 → 깊이(오목)
+      ══════════════════════════════════════════════════════ */
+      #intro-text {
+        font-family: var(--font-h);
+        color: #fff;
+        text-align: center;
+        text-shadow: 0 0 15.4px rgba(0, 0, 0, 0.6);
+
+        font-size: 100px;
+        font-style: normal;
+        font-weight: 400;
+        line-height: normal;
+        letter-spacing: -6.72px;
+        text-align: center;
+
+        /* transition:
+          opacity 0.7s ease,
+          transform 0.7s ease; */
+      }
+
+      /* 응답이 1개 이상 쌓이면 intro를 살짝 희미하게 */
+      #intro-text.pushed {
+        opacity: 0.42;
+        transform: scale(0.975);
+      }
+
+      /* ══════════════════════════════════════════════════════
+      [6] ANSWER BLOCK — 각 챗봇 응답 컨테이너
+      기본 상태: 라이트(1.png)
+      hover 상태: 다크 반전(2.png)
+      ══════════════════════════════════════════════════════ */
+      .answer-block {
+        position: relative;
+        flex-shrink: 0;
+        align-items: center;
+        cursor: pointer;
+        /* 등장 시 아래에서 위로 fade-in */
+        opacity: 0;
+        transform: translateY(36px);
+        animation: blockIn 0.6s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+      }
+      @keyframes blockIn {
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      /* ══════════════════════════════════════════════════════
+      [7] ANSWER TEXT — 기본(라이트) 상태
+      intro와 같은 emboss 스타일.
+      ══════════════════════════════════════════════════════ */
+      .answer-text {
+        font-family: var(--font-h);
+        color: #fff;
+        text-align: center;
+        text-shadow: 0 0 15.4px rgba(0, 0, 0, 0.6);
+
+        font-size: 100px;
+        font-style: normal;
+        font-weight: 400;
+        line-height: normal;
+        letter-spacing: -6.72px;
+        text-align: center;
+      }
+
+      /* ══════════════════════════════════════════════════════
+      [8] DARK OVERLAY — hover 시 화면 전체를 덮는 배경
+      position:fixed 로 1920×1080 전체를 어둡게 만듦.
+      2.png의 어두운 회색 라디얼 그라디언트 배경 재현.
+      ══════════════════════════════════════════════════════ */
+      .dark-overlay {
+        position: fixed;
+        inset: 0;
+        background: radial-gradient(
+          ellipse at 50% 38%,
+          #5c5a56 0%,
+          #3c3a37 42%,
+          #1c1a18 100%
+        );
+        opacity: 0;
+        pointer-events: none;
+        z-index: 3;
+        transition: opacity 0.11s ease;
+      }
+
+      /* hover 시 overlay 표시 */
+      .answer-block:hover ~ * .dark-overlay {
+        opacity: 0;
+      }
+      .answer-block:hover .dark-overlay {
+        opacity: 1;
+      }
+
+      /* ══════════════════════════════════════════════════════
+      [9] HOVER — 텍스트 반전 (2.png의 검은 emboss 글자)
+      어두운 배경 위에서 검은색 텍스트 + 입체 그림자.
+      2.png에서 글자가 볼록하게 튀어나온 느낌 재현.
+      ══════════════════════════════════════════════════════ */
+      .answer-block:hover .answer-text {
+        color: rgba(12, 10, 8, 0.96);
+
+        text-shadow: 0 0 15.4px rgba(0, 0, 0, 0.6);
+
+        position: relative;
+        z-index: 10;
+      }
+
+      /* ══════════════════════════════════════════════════════
+      [10] GHOST LAYER — hover 시 겹쳐 보이는 큰 글자들
+      2.png의 배경을 가득 채우는 거대한 반투명 텍스트.
+      전체 화면(fixed) 기준으로 배치되어 삐져나오는 효과.
+      ══════════════════════════════════════════════════════ */
+      /* .ghost-layer {
+        position: fixed;
+        inset: 0;
+        overflow: hidden;
+        opacity: 0;
+        pointer-events: none;
+        z-index: 4;
+        transition: opacity 0.1s ease;
+      }
+      .answer-block:hover .ghost-layer {
+        opacity: 1;
+      }
+
+      .ghost-word {
+        position: absolute;
+        font-family: var(--font-h);
+        color: rgba(18, 16, 13, 0.72);
+        white-space: nowrap;
+        line-height: 1;
+        text-shadow:
+          -4px -4px 0 rgba(75, 70, 65, 0.45),
+          5px 5px 0 rgba(0, 0, 0, 0.75),
+          0 0 28px rgba(0, 0, 0, 0.28);
+      } */
+      /* 전체 화면 dark overlay — body 직계라 stacking context 제한 없음 */
+      #global-dark-overlay {
+        position: fixed;
+        inset: 0;
+        background: radial-gradient(
+          79.6% 79.6% at 50% 50%,
+          #000 10.9%,
+          rgba(0, 0, 0, 0.34) 100%
+        );
+        opacity: 0;
+        pointer-events: none;
+        z-index: 500; /* scanline(9998) 아래, bottom-area(9999) 아래 */
+        transition: opacity 0.11s ease;
+      }
+
+      /* body에 .hovered 클래스가 붙으면 전체 화면 어두워짐 */
+      body.hovered #global-dark-overlay {
+        opacity: 1;
+      }
+
+      /* 전체 화면 ghost layer */
+      #global-ghost-layer {
+        position: fixed;
+        inset: 0;
+        overflow: hidden;
+        opacity: 0;
+        pointer-events: none;
+        z-index: 501;
+        transition: opacity 0.1s ease;
+      }
+
+      body.hovered #global-ghost-layer {
+        opacity: 1;
+      }
+
+      /* hover-input-overlay — hovered 아닐 때 완전히 차단 */
+      /* glow 배경만 담당 — 클릭 차단 없음 */
+#hover-input-overlay {
+  position: fixed;
+  bottom: -150px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 1600px;
+  height: 600px;
+  opacity: 0;
+  pointer-events: none;  /* 항상 none — 배경일 뿐 */
+  z-index: 600;
+  transition: opacity 0.15s ease;
+}
+
+#hover-input-overlay::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 1219px;
+  background: radial-gradient(
+    42.88% 42.88% at 50% 50%,
+    #fff 0%,
+    #d0d0d0 50%,
+    transparent 100%
+  );
+  filter: blur(40px);
+  z-index: -1;
+  pointer-events: none;
+}
+
+body.hovered #hover-input-overlay {
+  opacity: 1;
+}
+
+/* 입력 UI — 완전히 독립, 최상위 */
+#hover-ui {
+  position: fixed;
+  bottom: 100px;          /* overlay와 같은 위치 */
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 200px;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 999999;        /* 모든 것 위 */
+  transition: opacity 0.15s ease;
+}
+
+body.hovered #hover-ui {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+#hover-label {
+  font-family: var(--font-h);
+  font-size: 96px;
+  color: #FFF;
+text-align: center;
+text-shadow: 0 0 15.4px rgba(0, 0, 0, 0.60);
+font-weight: 400;
+line-height: normal;
+letter-spacing: -6.72px;
+  letter-spacing: -6.72px;
+  pointer-events: none;
+}
+
+#hover-input {
+  width: 600px;
+  background: transparent;
+  border: none;
+
+  color: #0A0A0A;
+text-align: center;
+text-shadow: 0 0 15.4px rgba(0, 0, 0, 0.60);
+
+
+font-style: normal;
+font-weight: 400;
+line-height: normal;
+letter-spacing: -2.52px;
+  
+  outline: none;
+  font-family: var(--font-h);
+  font-size: 48px;
+
+  caret-color: #ffffff;
+  resize: none;
+  height: 80px;
+
+  padding: 8px 0;
+  
+
+  /* 입력 관련 — 강제 허용 */
+  pointer-events: auto;
+  user-select: text;
+  -webkit-user-select: text;
+  cursor: text;
+}
+
+      /* ══════════════════════════════════════════════════════
+      [11] SCAN-LINE OVERLAY
+      hover 시 '오류/노이즈' 분위기를 강화하는
+      화면 전체 수평 scan-line. JS가 .active 토글.
+      ══════════════════════════════════════════════════════ */
+      #scanline {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 9998;
+        opacity: 0;
+        background: repeating-linear-gradient(
+          0deg,
+          transparent 0px,
+          transparent 3px,
+          rgba(0, 0, 0, 0.035) 3px,
+          rgba(0, 0, 0, 0.035) 4px
+        );
+        transition: opacity 0.1s ease;
+      }
+      #scanline.on {
+        opacity: 1;
+      }
+
+      /* ══════════════════════════════════════════════════════
+      [12] BOTTOM FIXED AREA — 하단 원형 입력 영역
+      position:fixed 로 항상 하단 중앙에 고정.
+      body glow 레이어(::before, ::after) 위에 배치됨.
+      ══════════════════════════════════════════════════════ */
+      /* ❌ 현재 — blur가 고하라 텍스트와 input까지 흐릿하게 만듦 */
+
+      /* ✅ 수정 — container는 투명, glow는 ::before로 분리 */
+      #bottom-area {
+        position: fixed;
+        bottom: 10%; /* 화면 수직 중앙 */
+        left: 50%;
+        transform: translate(-50%, 50%);
+        width: 1219px;
+        height: 400px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center; /* 내용 중앙 정렬 */
+        gap: 24px; /* 고하라 ↔ 입력창 간격 */
+        background: transparent; /* 배경 없음 */
+        filter: none; /* blur 제거 */
+        z-index: 9999;
+      }
+
+      /* glow 원 — ::before로 분리하면 자식에 영향 없음 */
+      #bottom-area::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: 50%; /* 완전한 원형 */
+        background: radial-gradient(
+          42.88% 42.88% at 50% 50%,
+          #737373 0%,
+          #a6a6a6 25%,
+          #fff 100%
+        );
+        filter: blur(30px); /* blur는 여기에만 적용 */
+        z-index: -1; /* 텍스트 뒤로 */
+        pointer-events: none;
+      }
+      /* ══════════════════════════════════════════════════════
+      [13] "고하라 :" 레이블 — 원형 상단 중앙
+      1.png의 "고하라 :" 텍스트 스타일 재현.
+      ══════════════════════════════════════════════════════ */
+      /* 고하라 레이블 — glow 위에서 선명하게 보이도록 */
+      #label-gohara {
+        z-index: 1; /* ::before glow 위에 */
+        font-size: 48px;
+        color: rgba(255, 255, 255, 0.9);
+        text-shadow: 0 0 15.4px rgba(0, 0, 0, 0.6);
+        letter-spacing: 0.22em;
+        text-align: center;
+        margin-bottom: 0; /* gap으로 간격 제어하므로 제거 */
+        position: relative;
+
+        transform: translateY(-70px);
+      }
+
+      /* 입력창 — 스크린샷처럼 고하라 아래에 자연스럽게 */
+      #user-input {
+        position: relative;
+        z-index: 1;
+        width: 500px;
+        font-size: 2rem; /* 96px → 22px (입력창에 맞는 크기) */
+        letter-spacing: 0.05em;
+        height: auto;
+        min-height: 46px;
+        background: transparent;
+        border: none;
+        /* border-bottom: 1px solid rgba(255, 255, 255, 0.3); */
+        color: rgba(255, 255, 255, 0.85);
+        text-align: center;
+        text-shadow: 0 0 10px rgba(0, 0, 0, 0.4);
+        outline: none;
+        resize: none;
+      }
+
+      /* hint도 glow 위에 */
+      #hint {
+        position: relative;
+        z-index: 1;
+        color: rgba(200, 200, 200, 0.5);
+      }
+      /* ══════════════════════════════════════════════════════
+      [14] INPUT TEXTAREA
+      투명 배경, 하단 테두리만 표시. 텍스트 중앙 정렬.
+      Enter → 제출 / Shift+Enter → 줄바꿈
+      ══════════════════════════════════════════════════════ */
+
+      #loading {
+        display: none;
+        margin-top: 14px;
+      }
+      #loading.on {
+        display: block;
+      }
+      .spinner {
+        width: 18px;
+        height: 18px;
+        margin: 0 auto;
+        border: 1.5px solid rgba(155, 150, 143, 0.18);
+        border-top-color: rgba(145, 140, 133, 0.65);
+        border-radius: 50%;
+        animation: spin 0.9s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* ══════════════════════════════════════════════════════
+      [16] TYPING CURSOR — 타이핑 중 끝에 붙는 블록 커서
+      ══════════════════════════════════════════════════════ */
+      .tcursor {
+        display: inline-block;
+        width: 3px;
+        height: 0.8em;
+        background: rgba(138, 133, 126, 0.75);
+        vertical-align: middle;
+        margin-left: 3px;
+        animation: blink 0.65s step-end infinite;
+      }
+      @keyframes blink {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0;
+        }
+      }
+
+      /* ══════════════════════════════════════════════════════
+      [17] API CONFIG PANEL — 우상단 설정 UI
+      ══════════════════════════════════════════════════════ */
+      #cfg-btn {
+        position: fixed;
+        top: 20px;
+        right: 24px;
+        z-index: 200;
+        background: transparent;
+        border: 1px solid rgba(155, 150, 143, 0.22);
+        color: rgba(145, 140, 133, 0.48);
+        font-family: var(--font-b);
+        font-size: 11px;
+        padding: 5px 14px;
+        cursor: pointer;
+        letter-spacing: 0.12em;
+        transition: all 0.2s;
+      }
+      #cfg-btn:hover {
+        color: rgba(110, 106, 100, 0.9);
+        border-color: rgba(135, 130, 123, 0.5);
+      }
+
+      #cfg-panel {
+        display: none;
+        position: fixed;
+        top: 52px;
+        right: 24px;
+        z-index: 200;
+        background: rgba(242, 240, 235, 0.98);
+        border: 1px solid rgba(155, 150, 143, 0.18);
+        padding: 20px;
+        width: 340px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.07);
+      }
+      #cfg-panel.open {
+        display: block;
+      }
+      .cl {
+        display: block;
+        font-size: 10px;
+        letter-spacing: 0.14em;
+        color: rgba(138, 133, 126, 0.58);
+        margin-bottom: 5px;
+      }
+      .ci {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.75);
+        border: 1px solid rgba(155, 150, 143, 0.18);
+        font-family: var(--font-b);
+        font-size: 12px;
+        color: rgba(100, 96, 90, 0.9);
+        padding: 7px 9px;
+        margin-bottom: 12px;
+        outline: none;
+      }
+      .ci:focus {
+        border-color: rgba(135, 130, 123, 0.42);
+      }
+      .cs {
+        width: 100%;
+        background: transparent;
+        border: 1px solid rgba(135, 130, 123, 0.28);
+        font-family: var(--font-b);
+        font-size: 11px;
+        letter-spacing: 0.12em;
+        color: rgba(118, 114, 108, 0.7);
+        padding: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .cs:hover {
+        background: rgba(0, 0, 0, 0.04);
+      }
+
+      /* TV 노이즈 캔버스 */
+      #tv-noise {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 502; /* ghost-layer(501) 바로 위 */
+        opacity: 0;
+        transition: opacity 0.05s ease;
+      }
+
+      #tv-noise.on {
+        opacity: 1;
+      }
+
+      /* 가로줄 흘러내리는 글리치 */
+      @keyframes glitchShift {
+        0% {
+          clip-path: inset(40% 0 50% 0);
+          transform: translateX(-8px);
+        }
+        20% {
+          clip-path: inset(10% 0 80% 0);
+          transform: translateX(6px);
+        }
+        40% {
+          clip-path: inset(70% 0 10% 0);
+          transform: translateX(-4px);
+        }
+        60% {
+          clip-path: inset(25% 0 60% 0);
+          transform: translateX(10px);
+        }
+        80% {
+          clip-path: inset(55% 0 30% 0);
+          transform: translateX(-6px);
+        }
+        100% {
+          clip-path: inset(40% 0 50% 0);
+          transform: translateX(0);
+        }
+      }
+
+      #glitch-layer {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 503;
+        opacity: 0;
+        background: inherit; /* 현재 화면 복사 느낌 */
+      }
+
+      #glitch-layer.on {
+        opacity: 1;
+        animation: glitchShift 0.12s steps(1) infinite;
+      }
+
+      @keyframes glitchBands {
+        0% {
+          background:
+            linear-gradient(
+              transparent 15%,
+              rgba(255, 255, 255, 0.06) 15%,
+              rgba(255, 255, 255, 0.06) 17%,
+              transparent 17%
+            ),
+            linear-gradient(
+              transparent 55%,
+              rgba(0, 0, 0, 0.15) 55%,
+              rgba(0, 0, 0, 0.15) 58%,
+              transparent 58%
+            );
+          transform: translateX(-6px);
+        }
+        25% {
+          background:
+            linear-gradient(
+              transparent 35%,
+              rgba(255, 255, 255, 0.08) 35%,
+              rgba(255, 255, 255, 0.08) 37%,
+              transparent 37%
+            ),
+            linear-gradient(
+              transparent 72%,
+              rgba(0, 0, 0, 0.12) 72%,
+              rgba(0, 0, 0, 0.12) 75%,
+              transparent 75%
+            );
+          transform: translateX(8px);
+        }
+        50% {
+          background:
+            linear-gradient(
+              transparent 5%,
+              rgba(255, 255, 255, 0.05) 5%,
+              rgba(255, 255, 255, 0.05) 8%,
+              transparent 8%
+            ),
+            linear-gradient(
+              transparent 88%,
+              rgba(0, 0, 0, 0.18) 88%,
+              rgba(0, 0, 0, 0.18) 91%,
+              transparent 91%
+            );
+          transform: translateX(-4px);
+        }
+        75% {
+          background: linear-gradient(
+            transparent 62%,
+            rgba(255, 255, 255, 0.07) 62%,
+            rgba(255, 255, 255, 0.07) 65%,
+            transparent 65%
+          );
+          transform: translateX(5px);
+        }
+        100% {
+          background: none;
+          transform: translateX(0);
+        }
+      }
+
+      /* symbol */
+      #symbol-layer {
+    position: fixed;
+    inset: 0;
+     pointer-events: none;
+     z-index: 1;   /* 배경(0) 위, 나머지(500~) 아래 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    }
+    #symbol-layer img {
+    position: absolute;
+    width: 100%;    /* 원하는 크기로 조절 */
+     height: auto;
+     opacity: 0;
+    transition: opacity 0.4s ease;
+    }
+
+/* 기본 이미지 — 처음부터 보임 */
+    #symbol-default { opacity: 1 !important; }
+
+/* 타이핑 중 */
+    body.typing  #symbol-default { opacity: 0 !important; }
+    body.typing  #symbol-typing  { opacity: 1 !important; }
+
+/* 스크롤 중 */
+    body.scrolling #symbol-default { opacity: 0 !important; }
+    body.scrolling #symbol-scroll  { opacity: 1 !important; }
+    </style>
+  </head>
+  <body>
+    <!-- 배경 바로 위, 모든 것 아래 -->
+  <div id="symbol-layer">
+    <img id="symbol-default" src="normal.svg">  <!-- 기본 -->
+    <img id="symbol-typing"  src="type.svg">  <!-- 타이핑 중 -->
+    <img id="symbol-scroll"  src="scroll.svg">  <!-- 스크롤 중 -->
+  </div>
+    
+  <canvas id="tv-noise"></canvas>
+  <div id="glitch-layer"></div>
+  <div id="scanline"></div>
+  <div id="global-dark-overlay"></div>
+  <div id="global-ghost-layer"></div>
+
+  <!-- overlay는 배경 glow만 담당 -->
+  <div id="hover-input-overlay"></div>
+
+  <!-- 입력 요소들은 완전히 독립 — 최상위 z-index -->
+  <div id="hover-ui">
+    <div id="hover-label">진리를 구하라 :</div>
+    <textarea id="hover-input" rows="1"></textarea>
+  </div>
+
+    <!-- [B] API 설정 버튼 + 패널 -->
+    <button id="cfg-btn" onclick="toggleCfg()">API 설정</button>
+    <div id="cfg-panel">
+      <label class="cl">ENDPOINT URL</label>
+      <input
+        class="ci"
+        id="ep"
+        type="text"
+        placeholder="https://your-api.com/v1/chat"
+      />
+      <label class="cl">API KEY (선택)</label>
+      <input class="ci" id="ak" type="password" placeholder="sk-..." />
+      <label class="cl">MODEL (기본: gpt-4o)</label>
+      <input class="ci" id="md" type="text" placeholder="gpt-4o" />
+      <label class="cl">SYSTEM PROMPT</label>
+      <input
+        class="ci"
+        id="sp"
+        type="text"
+        value="당신은 신탁입니다. 고뇌를 듣고 짧고 깊은 한국어 말씀으로만 응답하십시오."
+      />
+      <button class="cs" onclick="saveCfg()">저 장</button>
+    </div>
+
+    <!-- [C] 메인 앱 -->
+    <div id="app">
+      <!--
+    스크롤 영역: 시작 문장 + 응답들이 아래에서부터 쌓임.
+    justify-content:flex-end 이 핵심 — 새 항목이 항상 아래.
+  -->
+      <div id="scroll-area">
+        <!-- 시작 문장 (1.png 스타일의 연회색 emboss 텍스트) -->
+        <div id="intro-text">
+          주께서 이르시되,<br />
+          너희는 두려워 말라.<br /><br />
+          나는 이 땅의 지혜요 구원이니,<br />
+          너희의 짐을 대신 짊어질 자로다.<br /><br />
+          너희의 고뇌를 고하라.<br />
+          그리하면 권능의 진언이<br />
+          임할 것이니라.
+        </div>
+
+        <!-- JS가 .answer-block들을 여기에 appendChild -->
+      </div>
+
+      <!--
+    하단 고정 입력 영역.
+    position:fixed 로 스크롤과 무관하게 항상 하단 중앙에 표시.
+  -->
+      <div id="bottom-area">
+        <div id="label-gohara">고하라:</div>
+        <textarea id="user-input" rows="1"></textarea>
+        <div id="hint">Enter — 고하라 &nbsp;·&nbsp; Shift+Enter — 줄바꿈</div>
+        <div id="loading"><div class="spinner"></div></div>
+      </div>
+    </div>
+    </body>
+
+    <script>
+      /* ── CONFIG ── */
+      const cfg = {
+        ep: localStorage.getItem("o_ep") || "",
+        ak: localStorage.getItem("o_ak") || "",
+        md: localStorage.getItem("o_md") || "gpt-4o",
+        sp:
+          localStorage.getItem("o_sp") ||
+          "당신은 신탁입니다. 고뇌를 듣고 짧고 깊은 한국어 말씀으로만 응답하십시오.",
+      };
+      document.getElementById("ep").value = cfg.ep;
+      document.getElementById("ak").value = cfg.ak;
+      document.getElementById("md").value = cfg.md;
+      document.getElementById("sp").value = cfg.sp;
+
+      function toggleCfg() {
+        document.getElementById("cfg-panel").classList.toggle("open");
+      }
+      function saveCfg() {
+        cfg.ep = document.getElementById("ep").value.trim();
+        cfg.ak = document.getElementById("ak").value.trim();
+        cfg.md = document.getElementById("md").value.trim() || "gpt-4o";
+        cfg.sp = document.getElementById("sp").value.trim();
+        localStorage.setItem("o_ep", cfg.ep);
+        localStorage.setItem("o_ak", cfg.ak);
+        localStorage.setItem("o_md", cfg.md);
+        localStorage.setItem("o_sp", cfg.sp);
+        document.getElementById("cfg-panel").classList.remove("open");
+      }
+
+      /* ── TV 노이즈 + 글리치 — 전역 스코프에 정의 ── */
+      const noiseCanvas = document.getElementById("tv-noise");
+      const noiseCtx = noiseCanvas.getContext("2d");
+      let noiseAnimId = null;
+      let glitchTimer = null;
+
+      function resizeNoise() {
+        noiseCanvas.width = window.innerWidth;
+        noiseCanvas.height = window.innerHeight;
+      }
+      resizeNoise();
+      window.addEventListener("resize", resizeNoise);
+
+      function drawNoise() {
+        const w = noiseCanvas.width;
+        const h = noiseCanvas.height;
+        const imageData = noiseCtx.createImageData(w, h);
+        const data = imageData.data;
+        for (let i = 0; i < data.length; i += 4) {
+          const val = Math.random() * 255;
+          data[i] = val;
+          data[i + 1] = val;
+          data[i + 2] = val;
+          data[i + 3] = Math.random() * 60;
+        }
+        noiseCtx.putImageData(imageData, 0, 0);
+        noiseAnimId = requestAnimationFrame(drawNoise);
+      }
+
+      function startNoise() {
+        document.getElementById("tv-noise").classList.add("on");
+        drawNoise();
+      }
+
+      function stopNoise() {
+        document.getElementById("tv-noise").classList.remove("on");
+        document.getElementById("glitch-layer").classList.remove("on");
+        cancelAnimationFrame(noiseAnimId);
+        clearTimeout(glitchTimer);
+      }
+
+      function scheduleGlitch() {
+        if (!document.body.classList.contains("hovered")) return;
+        const delay = Math.random() * 3000 + 500;
+        const duration = Math.random() * 200 + 80;
+        glitchTimer = setTimeout(() => {
+          document.getElementById("glitch-layer").classList.add("on");
+          setTimeout(() => {
+            document.getElementById("glitch-layer").classList.remove("on");
+            scheduleGlitch();
+          }, duration);
+        }, delay);
+      }
+
+      /* ── AUTO RESET — 전역 스코프 ── */
+      let autoResetTimer = null;
+
+      function resetToNormal() {
+        clearInterval(window._ghostIntervalId);
+        window._ghostIntervalId = null;
+        stopNoise();
+        document.body.classList.remove("hovered");
+        document.getElementById("scanline").classList.remove("on");
+        document.getElementById("global-ghost-layer").innerHTML = "";
+        document.getElementById("hover-input").value = "";
+        // 시작 화면으로 복귀
+        const area = document.getElementById("scroll-area");
+        area.querySelectorAll(".answer-block").forEach((b) => b.remove());
+        document.getElementById("intro-text").classList.remove("pushed");
+        area.scrollTop = 0;
+        document.getElementById("user-input").focus();
+      }
+
+      function startAutoReset() {
+        clearTimeout(autoResetTimer);
+        autoResetTimer = setTimeout(resetToNormal, 10000);
+      }
+
+      document.addEventListener("mousemove", () => {
+        if (document.body.classList.contains("hovered")) startAutoReset();
+      });
+      document.addEventListener("keydown", () => {
+        if (document.body.classList.contains("hovered")) startAutoReset();
+      });
+
+      /* ── HOVER INPUT — 한 번만 등록 ── */
+      document
+        .getElementById("hover-input")
+        .addEventListener("keydown", (e) => {
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            const q = document.getElementById("hover-input").value.trim();
+            if (!q) return;
+            document.getElementById("hover-input").value = "";
+            clearTimeout(autoResetTimer);
+            clearInterval(window._ghostIntervalId);
+            window._ghostIntervalId = null;
+            stopNoise();
+            document.body.classList.remove("hovered");
+            document.getElementById("scanline").classList.remove("on");
+            document.getElementById("global-ghost-layer").innerHTML = "";
+            submit(q);
+            document.getElementById("user-input").focus();
+          }
+        });
+
+      /* ── USER INPUT ── */
+      const inputEl = document.getElementById("user-input");
+      inputEl.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          const q = inputEl.value.trim();
+          if (!q) return;
+          inputEl.value = "";
+          submit(q);
+        }
+      });
+
+      /* ── SUBMIT ── */
+      async function submit(query) {
+        document.getElementById("loading").classList.add("on");
+        document.getElementById("intro-text").classList.add("pushed");
+        let answer = "";
+        try {
+          answer = cfg.ep ? await callAPI(query) : demoAnswer(query);
+        } catch (err) {
+          answer = "권능이 잠시 침묵하노라.\n잠시 후 다시 고하라.";
+          console.error("API error:", err);
+        }
+        document.getElementById("loading").classList.remove("on");
+        addAnswer(answer, query);
+      }
+
+      /* ── CALL API ── */
+      async function callAPI(query) {
+        const headers = { "Content-Type": "application/json" };
+        if (cfg.ak) headers["Authorization"] = `Bearer ${cfg.ak}`;
+        const res = await fetch(cfg.ep, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            model: cfg.md,
+            messages: [
+              { role: "system", content: cfg.sp },
+              { role: "user", content: query },
+            ],
+          }),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        return (
+          data?.choices?.[0]?.message?.content ||
+          data?.message ||
+          data?.response ||
+          data?.text ||
+          JSON.stringify(data)
+        );
+      }
+
+      /* ── DEMO ANSWERS ── */
+      function demoAnswer(q) {
+        const pool = [
+          "두려움은 스스로 만든 그림자니라.\n그 그림자 속에 네가 있노라.",
+          "고뇌를 붙드는 손을 놓으라.\n그리하면 길이 보이리라.",
+          "네가 구하는 답은\n이미 네 안에 있노라.",
+          "권능의 말씀이 임하노라:\n멈추지 말고 나아가라.",
+          "잠잠하라.\n그 고요함 속에 진리가 있노라.",
+        ];
+        return pool[Math.floor(Math.random() * pool.length)];
+      }
+
+      /* ── ADD ANSWER ── */
+      function addAnswer(text, query) {
+        const area = document.getElementById("scroll-area");
+        const globalGhost = document.getElementById("global-ghost-layer");
+
+        const block = document.createElement("div");
+        block.className = "answer-block";
+
+        const textEl = document.createElement("div");
+        textEl.className = "answer-text";
+        block.appendChild(textEl);
+        area.appendChild(block);
+
+        const images = ["word.svg"];
+
+        /* mouseenter — 한 번만 발동 */
+        block.addEventListener("mouseenter", () => {
+  if (document.body.classList.contains("hovered")) return;
+  document.body.classList.add("hovered");
+  document.getElementById("scanline").classList.add("on");
+
+  globalGhost.innerHTML = "";
+  spawnGhostImage(globalGhost, images);
+
+  const intervalId = setInterval(() => {
+    spawnGhostImage(globalGhost, images);
+  }, 500);
+  window._ghostIntervalId = intervalId;
+
+  startNoise();
+  scheduleGlitch();
+  startAutoReset();
+
+  setTimeout(() => {
+    document.getElementById("hover-input").focus();
+  }, 100);
+});
+
+        setTimeout(() => {
+          area.scrollTop = area.scrollHeight;
+        }, 100);
+        typeText(textEl, text);
+      }
+
+      /* ── SPAWN GHOST IMAGE ── */
+      function spawnGhostImage(container, images) {
+        const img = document.createElement("img");
+        img.src = images[Math.floor(Math.random() * images.length)];
+
+        const cols = 3,
+          rows = 4;
+        const cellW = 100 / cols;
+        const cellH = 100 / rows;
+        const idx = container.children.length % (cols * rows);
+        const col = idx % cols;
+        const row = Math.floor(idx / cols);
+        const left = col * cellW + Math.random() * cellW;
+        const top = row * cellH + Math.random() * cellH;
+        const opacity = Math.random() * 0.5 + 0.5;
+
+        img.style.cssText = `
+          position: absolute;
+          top: ${top}%;
+          left: ${left}%;
+          width: 1000px;
+          height: auto;
+          transform: rotate(0deg);
+          opacity: ${opacity};
+          pointer-events: none;
+          object-fit: contain;
+          mix-blend-mode: multiply;
+        `;
+        container.appendChild(img);
+
+        while (container.children.length > cols * rows) {
+          container.removeChild(container.firstChild);
+        }
+      }
+
+      /* ── TYPE TEXT ── */
+      function typeText(el, text, speed = 50) {
+        const cursor = document.createElement("span");
+        cursor.className = "tcursor";
+        el.appendChild(cursor);
+        const chars = [...text];
+        let i = 0;
+        const iv = setInterval(() => {
+          if (i < chars.length) {
+            if (chars[i] === "\n") {
+              el.insertBefore(document.createElement("br"), cursor);
+            } else {
+              el.insertBefore(document.createTextNode(chars[i]), cursor);
+            }
+            i++;
+            const area = document.getElementById("scroll-area");
+            area.scrollTop = area.scrollHeight;
+          } else {
+            clearInterval(iv);
+            cursor.remove();
+          }
+        }, speed);
+      }
+
+      /* ── INIT ── */
+      window.addEventListener("load", () => {
+        if (!cfg.ep) {
+          document.getElementById("hint").textContent =
+            '우상단 "API 설정" → 엔드포인트 입력 후 사용';
+        }
+        inputEl.focus();
+      });
+
+      /* ── SYMBOL — 상태에 따라 이미지 전환 ── */
+let typingTimer  = null;
+let scrollTimer  = null;
+
+// 타이핑 감지 — user-input과 hover-input 둘 다
+document.addEventListener("input", () => {
+  document.body.classList.add("typing");
+  document.body.classList.remove("scrolling");
+
+  clearTimeout(typingTimer);
+  typingTimer = setTimeout(() => {
+    document.body.classList.remove("typing");
+  }, 1000);  // 1초 동안 입력 없으면 기본으로 복귀
+});
+
+// 스크롤 감지
+document.getElementById("scroll-area").addEventListener("scroll", () => {
+  document.body.classList.add("scrolling");
+  document.body.classList.remove("typing");
+
+  clearTimeout(scrollTimer);
+  scrollTimer = setTimeout(() => {
+    document.body.classList.remove("scrolling");
+  }, 800);  // 0.8초 동안 스크롤 없으면 기본으로 복귀
+});
+    </script>
+  </body>
+</html>
